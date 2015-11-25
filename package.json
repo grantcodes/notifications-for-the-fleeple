@@ -1,0 +1,18 @@
+{
+  "name": "fleetbuttons",
+  "version": "1.0.0",
+  "description": "A little app that does stuff when buttons are pressed on the Fleet Collective button thing",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Grant Richmond",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.3",
+    "nconf": "^0.8.2",
+    "oauth": "^0.9.14",
+    "pushbullet": "^1.4.3",
+    "spark": "^1.0.0"
+  }
+}
