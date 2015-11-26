@@ -8,7 +8,7 @@ var app = express();
 
 nconf.argv()
     .env()
-    .file({ file: './config.json' });
+    .file({ file: __dirname + '/config.json' });
 
 var users = nconf.get('users');
 var baseUrl = nconf.get('baseUrl');
