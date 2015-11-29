@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+    <p></p>
+    <form action="/reply" action="get">
+        <input type="hidden" value="{{user.iden}}" name="iden">
+        <label for="message">Write a message</label>
+        <input type="text" name="message" id="message">
+        <button type="submit">I'm in!</button>
+    </form>
+{% endblock %}

@@ -11,6 +11,7 @@
   "dependencies": {
     "express": "^4.13.3",
     "nconf": "^0.8.2",
+    "nunjucks": "^2.2.0",
     "oauth": "^0.9.14",
     "pushbullet": "^1.4.3",
     "spark": "^1.0.0"

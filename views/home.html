@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h3>Hi {{user.name}}</h3>
+    <p>Awesome! You will be notified of stuff</p>
+    <p><a class="button" href="/bacon?iden={{user.iden}}">Click here if you are getting bacon</a></p>
+    <p><a class="button" href="/unsubscribe?iden={{user.iden}}">Click here to unsubscribe</a></p>
+    <p><a class="button" href="/adduser?iden={{user.iden}}">Click here to add allow a new user to sign up</a></p>
+{% endblock %}

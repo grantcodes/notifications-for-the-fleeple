@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+    <form action="/createuser" method="get">
+        <input type="hidden" value="{{user.iden}}" name="iden">
+        <input type="email" name="email">
+        <button type="submit">Add User</button>
+    </form>
+{% endblock %}

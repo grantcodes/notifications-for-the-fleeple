@@ -3,6 +3,7 @@ var OAuth = require('oauth');
 var spark = require('spark');
 var PushBullet = require('pushbullet');
 var nconf = require('nconf');
+var nunjucks = require('nunjucks');
 
 var app = express();
 
@@ -10,7 +11,17 @@ nconf.argv()
     .env()
     .file({ file: __dirname + '/config.json' });
 
+var nunjucksEnv = nunjucks.configure('views', {
+    autoescape: false,
+    express: app
+});
+
+app.set('views', __dirname + '/views');
+app.set('view engine', 'html');
+app.use(express.static(__dirname + '/static'));
+
 var users = nconf.get('users');
+var allowedUsers = nconf.get('allowedUsers');
 var baseUrl = nconf.get('baseUrl');
 
 var OAuth2 = OAuth.OAuth2;
@@ -69,6 +80,14 @@ var pollTheFleeple = function(message) {
     }
 };
 
+var questionTheFleeple = function(message) {
+    for (var i = users.length - 1; i >= 0; i--) {
+        var user = users[i];
+        var pusher = new PushBullet(user.token);
+        pusher.link({}, 'For the Fleeple: ' + message, baseUrl + '/question?iden=' + user.iden);
+    }
+};
+
 spark.on('login', function() {
     console.log('logged in and running');
 
@@ -99,9 +118,8 @@ app.get('/', function (req, res) {
       state: 'this is just some gobbledygook for security',
       response_type: 'code'
   });
-
-  var body = '<a href="' + authURL + '">Login with PushBullet</a>';
-  res.end(body);
+  var body = '<a class="button" href="' + authURL + '">Login with PushBullet</a>';
+  res.render('message.html', {message: body});
 });
 
 app.get('/code', function (req, res) {
@@ -114,10 +132,10 @@ app.get('/code', function (req, res) {
             function (e, access_token, refresh_token, results){
                 if (e) {
                     console.log(e);
-                    res.end('It\'s all gone tits up.');
+                    res.render('message.html', {message: 'It\'s all gone tits up.'})
                 } else if (results.error) {
                     console.log(results);
-                    res.end(JSON.stringify(results));
+                    res.render('message.html', {message: 'It\'s all gone tits up.'})
                 }
                 else {
                     console.log('Obtained access_token: ', access_token);
@@ -127,25 +145,30 @@ app.get('/code', function (req, res) {
                     var pusher = new PushBullet(access_token);
                     pusher.me(function(err, user) {
                       if (err) {
-                        res.end('Couldn\'t get your profile :(');
+                        res.render('message.html', {message: 'Couldn\'t get your profile :('})
                       } else {
                         getUserByIden(user.iden, function(foundUser) {
-                          if (!foundUser) {
-                            user.token = access_token;
-                            users.push(user);
-                            nconf.set('users', users);
-                            nconf.save();
-                          } else {
-                            user = foundUser;
+                          if (allowedUsers.indexOf(user.email) === -1) {
+                            res.render('message.html', {message: 'You\'re not on the list of allowed users. Ask an existing user to add you.'})
+                          }
+                          else {
+                            if (!foundUser) {
+                              user.token = access_token;
+                              users.push(user);
+                              nconf.set('users', users);
+                              nconf.save();
+                            } else {
+                              user = foundUser;
+                            }
+                            res.render('home.html', {user: user});
                           }
                         });
-                        res.end('<p>Awesome! You will be notified of stuff</p><p><a href="/bacon?iden=' + user.iden + '">Click here if you are getting bacon</a></p><p><a href="/unsubscribe?iden=' + user.iden + '"">Click here to unsubscribe</a></p>');
                       }
                     });
                 }
         });
     } else {
-        res.end('Uh oh. A code is missing');
+        res.render('message.html', {message: 'Uh oh. A code is missing'});
     }
 });
 
@@ -154,9 +177,40 @@ app.get('/poll', function (req, res) {
     getUserByIden(req.query.iden, function(user){
       if (user) {
         notifyTheFleeple(user.name + ' is in!');
-        res.end('You\'re in!');
+        res.render('message.html', {message: 'You\'re in!'});
       } else {
-        res.end('Uh oh!');
+        res.render('message.html', {message: 'Uh oh!'});
+      }
+    });
+  }
+});
+
+app.get('/question', function (req, res) {
+  if (req.query.iden) {
+    getUserByIden(req.query.iden, function(user){
+      if (user) {
+        res.render('question.html', {user: user});
+      } else {
+        res.render('message.html', {message: 'Uh oh!'});
+      }
+    });
+  }
+});
+
+app.get('/reply', function (req, res) {
+  if (req.query.iden) {
+    getUserByIden(req.query.iden, function(user){
+      if (user) {
+        var message = user.name;
+        if (req.query.message) {
+          message += ': ' + req.query.message;
+        } else {
+          message += ' is in!';
+        }
+        notifyTheFleeple(message);
+        res.render('message.html', {message: 'You\'re in!'});
+      } else {
+        res.render('message.html', {message: 'Uh oh!'});
       }
     });
   }
@@ -166,10 +220,10 @@ app.get('/bacon', function (req, res) {
   if (req.query.iden) {
     getUserByIden(req.query.iden, function(user){
       if (user) {
-        pollTheFleeple(user.name + ' is getting bacon. Click the link if you want some.');
-        res.end('The Fleeple have been questioned');
+        questionTheFleeple(user.name + ' is getting bacon. Click the link if you want some.');
+        res.render('message.html', {message: 'The Fleeple have been questioned'});
       } else {
-        res.end('Uh oh!');
+        res.render('message.html', {message: 'Uh oh!'});
       }
     });
   }
@@ -187,8 +241,35 @@ app.get('/unsubscribe', function (req, res) {
       }
     });
   }
-  res.end('You will no longer be notified');
+  res.render('message.html', {message: 'You will no longer be notified'});
 });
+
+app.get('/adduser', function (req, res) {
+  if (req.query.iden) {
+    getUserByIden(req.query.iden, function(user){
+      res.render('adduser.html', {user: user});
+    });
+  } else {
+    res.render('message.html', {message: 'Uh Oh!'});
+  }
+});
+
+app.get('/createuser', function (req, res) {
+  console.log(req.query);
+  if (req.query.iden) {
+    getUserByIden(req.query.iden, function(user){
+      if (user && req.query.email) {
+        allowedUsers.push(req.query.email);
+        nconf.set('allowedUsers', allowedUsers);
+        nconf.save();
+        res.render('message.html', {message: 'That user should be able to register now'});
+      }
+    });
+  } else {
+    res.render('message.html', {message: 'Uh Oh!'});
+  }
+});
+
 
 spark.login({
   username: nconf.get('particleUsername'),
