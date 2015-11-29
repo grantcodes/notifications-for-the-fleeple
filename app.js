@@ -23,6 +23,7 @@ app.use(express.static(__dirname + '/static'));
 var users = nconf.get('users');
 var allowedUsers = nconf.get('allowedUsers');
 var baseUrl = nconf.get('baseUrl');
+var coffeeMinutes = nconf.get('coffeeMinutes');
 
 var OAuth2 = OAuth.OAuth2;
 var clientId = nconf.get('pushbulletClientId');
@@ -94,9 +95,9 @@ var startCoffeeTimer = function() {
       notifyTheFleeple('The coffee is on!');
       coffeeTimer = setTimeout( function() {
         notifyTheFleeple('The coffee is ready!');
-        clearTimer(coffeeTimer);
+        clearTimeout(coffeeTimer);
         coffeeTimer = false;
-      }, 1000 * 60 * 40);
+      }, 1000 * 60 * coffeeMinutes);
     }
 };
 
