@@ -109,7 +109,7 @@ spark.on('login', function() {
       questionTheFleeple('Someone is going for bacon! Click the link if you want some.');
     });
 
-    spark.onEvent('fleet-coffee-on', coffeeTimer);
+    spark.onEvent('fleet-coffee-on', startCoffeeTimer);
 
     // spark.onEvent('fleet-coffee-done', function(data) {
     //   console.log("Coffee Event: " + data);
