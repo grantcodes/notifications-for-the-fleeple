@@ -88,23 +88,32 @@ var questionTheFleeple = function(message) {
     }
 };
 
+var coffeeTimer;
+var startCoffeeTimer = function() {
+    if (!coffeeTimer) {
+      notifyTheFleeple('The coffee is on!');
+      coffeeTimer = setTimeout( function() {
+        notifyTheFleeple('The coffee is ready!');
+        clearTimer(coffeeTimer);
+        coffeeTimer = false;
+      }, 1000 * 60 * 40);
+    }
+};
+
 spark.on('login', function() {
     console.log('logged in and running');
 
     spark.onEvent('fleet-bacon', function(data) {
       console.log("Bacon Event: " + data);
-      pollTheFleeple('Someone is going for bacon! Click the link if you want some.');
+      questionTheFleeple('Someone is going for bacon! Click the link if you want some.');
     });
 
-    spark.onEvent('fleet-coffee-on', function(data) {
-      console.log("Coffee Event: " + data);
-      notifyTheFleeple('The coffee is on');
-    });
+    spark.onEvent('fleet-coffee-on', coffeeTimer);
 
-    spark.onEvent('fleet-coffee-done', function(data) {
-      console.log("Coffee Event: " + data);
-      notifyTheFleeple('The coffee is ready');
-    });
+    // spark.onEvent('fleet-coffee-done', function(data) {
+    //   console.log("Coffee Event: " + data);
+    //   notifyTheFleeple('The coffee is ready');
+    // });
 
     spark.onEvent('fleet-beer', function(data) {
       console.log("It's beer o clock: " + data);
