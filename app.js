@@ -89,7 +89,7 @@ var questionTheFleeple = function(message) {
     }
 };
 
-var coffeeTimer;
+var coffeeTimer = false;
 var startCoffeeTimer = function() {
     if (!coffeeTimer) {
       notifyTheFleeple('The coffee is on!');
