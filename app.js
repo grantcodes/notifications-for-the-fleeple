@@ -4,6 +4,7 @@ var spark = require('spark');
 var PushBullet = require('pushbullet');
 var nconf = require('nconf');
 var nunjucks = require('nunjucks');
+var http = require('http');
 
 var app = express();
 
@@ -24,6 +25,7 @@ var users = nconf.get('users');
 var allowedUsers = nconf.get('allowedUsers');
 var baseUrl = nconf.get('baseUrl');
 var coffeeMinutes = nconf.get('coffeeMinutes');
+var giphyKey = nconf.get('giphyKey');
 
 var OAuth2 = OAuth.OAuth2;
 var clientId = nconf.get('pushbulletClientId');
@@ -89,6 +91,17 @@ var questionTheFleeple = function(message) {
     }
 };
 
+var annoyTheFleeple = function(data) {
+  if (data.gif) {
+    for (var i = users.length - 1; i >= 0; i--) {
+        var user = users[i];
+        var pusher = new PushBullet(user.token);
+        pusher.link({}, 'Annoy the Fleeple', data.gif);
+    }
+    console.log('Sending dank memes');
+  }
+}
+
 var coffeeTimer = false;
 var startCoffeeTimer = function() {
     if (!coffeeTimer) {
@@ -101,6 +114,26 @@ var startCoffeeTimer = function() {
     }
 };
 
+var dankMeme = function(data) {
+  var url = 'http://api.giphy.com/v1/gifs/random?api_key=' + giphyKey + '&tag=funny'
+  http.get(url, function(res){
+    var body = '';
+
+    res.on('data', function(chunk){
+      body += chunk;
+    });
+
+    res.on('end', function(){
+      var gif = JSON.parse(body);
+      if ( gif.data.image_url ) {
+        annoyTheFleeple({gif: gif.data.image_url});
+      }
+    });
+  }).on('error', function(e){
+    console.log('Got an error: ', e);
+  });
+}
+
 spark.on('login', function() {
     console.log('logged in and running');
 
@@ -111,15 +144,16 @@ spark.on('login', function() {
 
     spark.onEvent('fleet-coffee-on', startCoffeeTimer);
 
-    // spark.onEvent('fleet-coffee-done', function(data) {
-    //   console.log("Coffee Event: " + data);
-    //   notifyTheFleeple('The coffee is ready');
-    // });
-
     spark.onEvent('fleet-beer', function(data) {
       console.log("It's beer o clock: " + data);
       pollTheFleeple('What time is it? It\'s beer\'o\'clock! Click if you\'re coming along');
     });
+
+    spark.onEvent('fleet-vegan', function(data) {
+      questionTheFleeple('A silly vegan clicked a button! Click the link if you want some.');
+    });
+
+    spark.onEvent('mysteryButton', dankMeme);
 });
 
 app.get('/', function (req, res) {
