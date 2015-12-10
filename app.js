@@ -153,7 +153,7 @@ spark.on('login', function() {
       questionTheFleeple('A silly vegan clicked a button! Click the link if you want some.');
     });
 
-    spark.onEvent('mysteryButton', dankMeme);
+    spark.onEvent('fleet-random', dankMeme);
 });
 
 app.get('/', function (req, res) {
