@@ -5,6 +5,7 @@ var PushBullet = require('pushbullet');
 var nconf = require('nconf');
 var nunjucks = require('nunjucks');
 var http = require('http');
+var complimenter = require( 'complimenter' );
 
 var app = express();
 
@@ -100,7 +101,15 @@ var annoyTheFleeple = function(data) {
     }
     console.log('Sending dank memes');
   }
-}
+};
+
+var complimentFleetee = function() {
+  var rando = Math.floor(Math.random() * users.length);
+  var fleetee = users[rando];
+  var pusher = new PushBullet(fleetee.token);
+  var compliment = complimenter();
+  pusher.note({}, compliment);
+};
 
 var coffeeTimer = false;
 var startCoffeeTimer = function() {
@@ -132,7 +141,7 @@ var dankMeme = function(data) {
   }).on('error', function(e){
     console.log('Got an error: ', e);
   });
-}
+};
 
 spark.on('login', function() {
     console.log('logged in and running');
@@ -154,6 +163,8 @@ spark.on('login', function() {
     });
 
     spark.onEvent('fleet-random', dankMeme);
+
+    spark.onEvent('fleet-compliment', complimentFleetee);
 });
 
 app.get('/', function (req, res) {
