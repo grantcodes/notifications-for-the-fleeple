@@ -28,6 +28,8 @@ var baseUrl = nconf.get('baseUrl');
 var coffeeMinutes = nconf.get('coffeeMinutes');
 var giphyKey = nconf.get('giphyKey');
 
+var giphyTags = ['funny', 'lol', 'fail', 'failing', 'swag', 'laser', 'cat', 'dog', 'bunny', 'kitten', 'puppy', 'cute', 'godzilla', 'john travolta', 'dickbutt'];
+
 var OAuth2 = OAuth.OAuth2;
 var clientId = nconf.get('pushbulletClientId');
 var clientSecret = nconf.get('pushbulletClientSecret');
@@ -124,7 +126,8 @@ var startCoffeeTimer = function() {
 };
 
 var dankMeme = function(data) {
-  var url = 'http://api.giphy.com/v1/gifs/random?api_key=' + giphyKey + '&tag=funny'
+  var tag = Math.floor(Math.random() * giphyTags.length);
+  var url = 'http://api.giphy.com/v1/gifs/random?api_key=' + giphyKey + '&tag=' + encodeURIComponent(giphyTags[tag]);
   http.get(url, function(res){
     var body = '';
 
