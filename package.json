@@ -9,7 +9,7 @@
   "author": "Grant Richmond",
   "license": "ISC",
   "dependencies": {
-    "complimenter": "github:deoxxa/complimenter",
+    "complimenter": "github:terminalpixel/complimenter",
     "express": "^4.13.3",
     "nconf": "^0.8.2",
     "nunjucks": "^2.2.0",
