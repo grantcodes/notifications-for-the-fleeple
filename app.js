@@ -1,11 +1,18 @@
 var express = require('express');
+var bodyParser = require('body-parser');
 var OAuth = require('oauth');
-var spark = require('spark');
+var Particle = require('particle-api-js');
 var PushBullet = require('pushbullet');
 var nconf = require('nconf');
 var nunjucks = require('nunjucks');
 var http = require('http');
 var complimenter = require( 'complimenter' );
+var particle = new Particle({
+  baseUrl: 'https://api.particle.io',
+  clientSecret: 'particle-api',
+  clientId: 'particle-api',
+  tokenDuration: 7776000, // 90 days
+});
 
 var app = express();
 
@@ -18,6 +25,8 @@ var nunjucksEnv = nunjucks.configure('views', {
     express: app
 });
 
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
 app.set('views', __dirname + '/views');
 app.set('view engine', 'html');
 app.use(express.static(__dirname + '/static'));
@@ -105,7 +114,8 @@ var annoyTheFleeple = function(data) {
   }
 };
 
-var complimentFleetee = function() {
+var complimentFleetee = function(req, res) {
+  var event = req.body.event;
   var rando = Math.floor(Math.random() * users.length);
   var fleetee = users[rando];
   var pusher = new PushBullet(fleetee.token);
@@ -125,17 +135,18 @@ var startCoffeeTimer = function() {
     }
 };
 
-var dankMeme = function(data) {
+var dankMeme = function(req, res) {
+  var event = req.body.event;
   var tag = Math.floor(Math.random() * giphyTags.length);
   var url = 'http://api.giphy.com/v1/gifs/random?api_key=' + giphyKey + '&tag=' + encodeURIComponent(giphyTags[tag]);
-  http.get(url, function(res){
+  http.get(url, function(result){
     var body = '';
 
-    res.on('data', function(chunk){
+    result.on('data', function(chunk){
       body += chunk;
     });
 
-    res.on('end', function(){
+    result.on('end', function(){
       var gif = JSON.parse(body);
       if ( gif.data.image_url ) {
         annoyTheFleeple({gif: gif.data.image_url});
@@ -146,29 +157,20 @@ var dankMeme = function(data) {
   });
 };
 
-spark.on('login', function() {
+var particleEvents = function(data) {
     console.log('logged in and running');
-
-    spark.onEvent('fleet-bacon', function(data) {
-      console.log("Bacon Event: " + data);
-      questionTheFleeple('Someone is going for bacon! Click the link if you want some.');
-    });
-
-    spark.onEvent('fleet-coffee-on', startCoffeeTimer);
-
-    spark.onEvent('fleet-beer', function(data) {
-      console.log("It's beer o clock: " + data);
-      pollTheFleeple('What time is it? It\'s beer\'o\'clock! Click if you\'re coming along');
-    });
-
-    spark.onEvent('fleet-vegan', function(data) {
-      questionTheFleeple('A silly vegan clicked a button! Click the link if you want some.');
-    });
-
-    spark.onEvent('fleet-random', dankMeme);
-
-    spark.onEvent('fleet-compliment', complimentFleetee);
-});
+    var access_token = data.body.access_token;
+    var webhooks = ['fleet-bacon', 'fleet-coffee-on', 'fleet-beer', 'fleet-vegan', 'fleet-random', 'fleet-compliment'];
+    // Create all the webhooks we need.
+    for (var i = webhooks.length - 1; i >= 0; i--) {
+      var webhook = webhooks[i]
+      particle.createWebhook({
+        name: webhook,
+        url: baseUrl + '/webhooks/' + webhook,
+        auth: access_token
+      });
+    }
+};
 
 app.get('/', function (req, res) {
   var authURL = oauth2.getAuthorizeUrl({
@@ -328,10 +330,35 @@ app.get('/createuser', function (req, res) {
   }
 });
 
+// TODO: Verify that request are legit requests from particle.
+app.post('/webhooks/fleet-bacon', function(req, res) {
+  console.log("Bacon Event: " + req.body.event);
+  questionTheFleeple('Someone is going for bacon! Click the link if you want some.');
+});
 
-spark.login({
+app.post('/webhooks/fleet-coffee-on', startCoffeeTimer);
+
+app.post('/webhooks/fleet-beer', function(req, res) {
+  console.log("It's beer o clock: " + req.body.event);
+  pollTheFleeple('What time is it? It\'s beer\'o\'clock! Click if you\'re coming along');
+});
+
+app.post('/webhooks/fleet-vegan', function(req, res) {
+  questionTheFleeple('A silly vegan clicked a button! Click the link if you want some.');
+});
+
+app.post('/webhooks/fleet-random', dankMeme);
+
+app.post('/webhooks/fleet-compliment', complimentFleetee);
+
+
+particle.login({
   username: nconf.get('particleUsername'),
-  password: nconf.get('particlePassword')
+  password: nconf.get('particlePassword'),
+  tokenDuration: 60 * 60 * 24 * 365
+}).then(particleEvents, function(err) {
+  console.log('Error logging into particle:');
+  console.log(err.errorDescription);
 });
 
 app.listen(nconf.get('port'));

@@ -9,12 +9,13 @@
   "author": "Grant Richmond",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.15.0",
     "complimenter": "github:terminalpixel/complimenter",
     "express": "^4.13.4",
     "nconf": "^0.8.4",
     "nunjucks": "^2.3.0",
     "oauth": "^0.9.14",
-    "pushbullet": "^1.4.3",
-    "spark": "^1.1.0"
+    "particle-api-js": "^5.0.1",
+    "pushbullet": "^1.4.3"
   }
 }
