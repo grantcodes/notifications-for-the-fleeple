@@ -10,11 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "complimenter": "github:terminalpixel/complimenter",
-    "express": "^4.13.3",
-    "nconf": "^0.8.2",
-    "nunjucks": "^2.2.0",
+    "express": "^4.13.4",
+    "nconf": "^0.8.4",
+    "nunjucks": "^2.3.0",
     "oauth": "^0.9.14",
     "pushbullet": "^1.4.3",
-    "spark": "^1.0.0"
+    "spark": "^1.1.0"
   }
 }
