@@ -36,6 +36,7 @@ var allowedUsers = nconf.get('allowedUsers');
 var baseUrl = nconf.get('baseUrl');
 var coffeeMinutes = nconf.get('coffeeMinutes');
 var giphyKey = nconf.get('giphyKey');
+var antiSpam = false;
 
 var giphyTags = ['funny', 'lol', 'fail', 'failing', 'swag', 'laser', 'cat', 'dog', 'bunny', 'kitten', 'puppy', 'cute', 'godzilla', 'john travolta', 'dickbutt'];
 
@@ -50,6 +51,13 @@ var oauth2 = new OAuth2(
     'https://api.pushbullet.com/oauth2/token',
     null
 );
+
+var shutUpForAWhile = function() {
+    antiSpam = true;
+    setTimeout(function() {
+        antiSpam = false;
+    }, 1000);
+};
 
 var getUserByToken = function(token, cb) {
   var pusher = new PushBullet(token);
@@ -80,47 +88,63 @@ var getUserByIden = function(iden, cb) {
 };
 
 var notifyTheFleeple = function(message) {
-    for (var i = users.length - 1; i >= 0; i--) {
-        var user = users[i];
-        var pusher = new PushBullet(user.token);
-        pusher.note({}, 'For the Fleeple', message);
+    if (!antiSpam) {
+        for (var i = users.length - 1; i >= 0; i--) {
+            var user = users[i];
+            var pusher = new PushBullet(user.token);
+            pusher.note({}, 'For the Fleeple', message);
+        }
+        shutUpForAWhile();
     }
 };
 
 var pollTheFleeple = function(message) {
-    for (var i = users.length - 1; i >= 0; i--) {
-        var user = users[i];
-        var pusher = new PushBullet(user.token);
-        pusher.link({}, 'For the Fleeple: ' + message, baseUrl + '/poll?iden=' + user.iden);
+    if (!antiSpam) {
+        for (var i = users.length - 1; i >= 0; i--) {
+            var user = users[i];
+            var pusher = new PushBullet(user.token);
+            pusher.link({}, '' + message, baseUrl + '/poll?iden=' + user.iden);
+        }
+        shutUpForAWhile();
     }
 };
 
 var questionTheFleeple = function(message) {
-    for (var i = users.length - 1; i >= 0; i--) {
-        var user = users[i];
-        var pusher = new PushBullet(user.token);
-        pusher.link({}, 'For the Fleeple: ' + message, baseUrl + '/question?iden=' + user.iden);
+    if (!antiSpam) {
+        for (var i = users.length - 1; i >= 0; i--) {
+            var user = users[i];
+            var pusher = new PushBullet(user.token);
+            pusher.link({}, '' + message, baseUrl + '/question?iden=' + user.iden);
+        }
+        shutUpForAWhile();
     }
 };
 
 var annoyTheFleeple = function(data) {
-  if (data.gif) {
-    for (var i = users.length - 1; i >= 0; i--) {
-        var user = users[i];
-        var pusher = new PushBullet(user.token);
-        pusher.link({}, 'Annoy the Fleeple', data.gif);
+    if (!antiSpam) {
+        if (data.gif) {
+            for (var i = users.length - 1; i >= 0; i--) {
+                var user = users[i];
+                var pusher = new PushBullet(user.token);
+                pusher.link({}, 'Annoy the Fleeple', data.gif);
+            }
+            console.log('Sending dank memes');
+        }
+        shutUpForAWhile();
     }
-    console.log('Sending dank memes');
-  }
 };
 
 var complimentFleetee = function(req, res) {
-  var event = req.body.event;
-  var rando = Math.floor(Math.random() * users.length);
-  var fleetee = users[rando];
-  var pusher = new PushBullet(fleetee.token);
-  var compliment = complimenter();
-  pusher.note({}, compliment);
+    var event = req.body.event;
+    var rando = Math.floor(Math.random() * users.length);
+    var fleetee = users[rando];
+    var pusher = new PushBullet(fleetee.token);
+    var compliment = complimenter();
+    if (!antiSpam) {
+        pusher.note({}, compliment);
+        shutUpForAWhile();
+    }
+    res.send(true);
 };
 
 var coffeeTimer = false;
@@ -155,6 +179,7 @@ var dankMeme = function(req, res) {
   }).on('error', function(e){
     console.log('Got an error: ', e);
   });
+  res.send(true);
 };
 
 var particleEvents = function(data) {
@@ -163,7 +188,7 @@ var particleEvents = function(data) {
     var webhooks = ['fleet-bacon', 'fleet-coffee-on', 'fleet-beer', 'fleet-vegan', 'fleet-random', 'fleet-compliment'];
     // Create all the webhooks we need.
     for (var i = webhooks.length - 1; i >= 0; i--) {
-      var webhook = webhooks[i]
+      var webhook = webhooks[i];
       particle.createWebhook({
         name: webhook,
         url: baseUrl + '/webhooks/' + webhook,
@@ -219,6 +244,8 @@ app.get('/code', function (req, res) {
                               nconf.save();
                             } else {
                               user = foundUser;
+                              users[users.indexOf(user)].token = access_token;
+                              nconf.save();
                             }
                             res.render('home.html', {user: user});
                           }
@@ -333,7 +360,9 @@ app.get('/createuser', function (req, res) {
 // TODO: Verify that request are legit requests from particle.
 app.post('/webhooks/fleet-bacon', function(req, res) {
   console.log("Bacon Event: " + req.body.event);
+
   questionTheFleeple('Someone is going for bacon! Click the link if you want some.');
+  res.send(true);
 });
 
 app.post('/webhooks/fleet-coffee-on', startCoffeeTimer);
@@ -341,10 +370,12 @@ app.post('/webhooks/fleet-coffee-on', startCoffeeTimer);
 app.post('/webhooks/fleet-beer', function(req, res) {
   console.log("It's beer o clock: " + req.body.event);
   pollTheFleeple('What time is it? It\'s beer\'o\'clock! Click if you\'re coming along');
+  res.send(true);
 });
 
 app.post('/webhooks/fleet-vegan', function(req, res) {
   questionTheFleeple('A silly vegan clicked a button! Click the link if you want some.');
+  res.send(true);
 });
 
 app.post('/webhooks/fleet-random', dankMeme);
